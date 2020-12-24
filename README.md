@@ -1,0 +1,1 @@
+jpa_insert_into_native
