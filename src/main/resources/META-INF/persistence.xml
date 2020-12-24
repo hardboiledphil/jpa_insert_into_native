@@ -1,0 +1,13 @@
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+             version="2.0">
+    <persistence-unit name="test_objects_pu" transaction-type="RESOURCE_LOCAL">
+        <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+        <class>jpainsertinto.jpa.MyObjectJpa</class>
+        <properties>
+            <property name="eclipselink.session.customizer" value="jpainsertinto.jpa.JpaSessionCustomizer"/>
+            <property name="javax.persistence.jdbc.driver" value="org.postgresql.Driver"/>
+        </properties>
+    </persistence-unit>
+</persistence>
