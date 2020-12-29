@@ -16,6 +16,9 @@ public interface MyObjectJpaDao {
 
     void insertUsingFindAndMerge(MyObjectPojo myObjectPojo);
 
+    void insertUsingNativeJDBC(MyObjectPojo myObjectPojo);
+
     List<MyObjectJpa> getAll();
 
+    List<MyObjectJpa> getAllUsingNativeJDBC();
 }

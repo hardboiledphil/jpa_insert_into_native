@@ -1,0 +1,11 @@
+.gradle/
+gradle/
+## Directory-based project format:
+.idea/
+
+build/
+out/
+*.log
+
+*.iml
+target/

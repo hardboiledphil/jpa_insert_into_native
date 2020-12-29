@@ -29,28 +29,44 @@ public class TestMyObjectDaoITest {
 
     private static EntityManagerFactory emf;
     private static MyObjectJpaDao myObjectDao;
-    private static EmbeddedPostgres embeddedPostgres;
-    private static DataSource dataSource;
-    private static int port;
     private static final String SCHEMA_NAME = "public";
 
-    private final String hash = "abc123";
-    private final String value1 = "value1";
-    private final String value2 = "value2";
-    private final String value3 = "value3";
-    private final String value4 = "value4";
-    private final LocalDate created1 = LocalDate.now();
-    private final LocalDate created2 = created1.plusDays(1L);
-    private final LocalDateTime updated1 = LocalDateTime.now();
-    private final LocalDateTime updated2 = updated1.plusSeconds(1);
+    private static final String HASH = "abc123";
+    private static final String VALUE1 = "value1";
+    private static final String VALUE2 = "value2";
+    private static final String VALUE3 = "value3";
+    private static final String VALUE4 = "value4";
+    private static final LocalDate CREATED1 = LocalDate.now();
+    private static final LocalDate CREATED2 = CREATED1.plusDays(1L);
+    private static final LocalDateTime UPDATED1 = LocalDateTime.now();
+    private static final LocalDateTime UPDATED2 = UPDATED1.plusSeconds(1);
+    private static MyObjectPojo myObjectPojo1;
+    private static MyObjectPojo myObjectPojo2;
 
     @BeforeAll
     @SneakyThrows
     public static void setup() {
 
-        embeddedPostgres = EmbeddedPostgres.start();
-        dataSource = embeddedPostgres.getPostgresDatabase();
-        port = embeddedPostgres.getPort();
+         myObjectPojo1 = MyObjectPojo.builder()
+                .hash(HASH)
+                .column1(VALUE1)
+                .column2(VALUE2)
+                .created(CREATED1)
+                .updated(UPDATED1)
+                .build();
+
+        // create a new slightly different version with same hash
+        myObjectPojo2 = MyObjectPojo.builder()
+                .hash(HASH)
+                .column1(VALUE3)
+                .column2(VALUE4)
+                .created(CREATED2)
+                .updated(UPDATED2)
+                .build();
+
+        EmbeddedPostgres embeddedPostgres = EmbeddedPostgres.start();
+        DataSource dataSource = embeddedPostgres.getPostgresDatabase();
+        int port = embeddedPostgres.getPort();
 
         Flyway.configure()
                 .schemas(SCHEMA_NAME)
@@ -71,7 +87,7 @@ public class TestMyObjectDaoITest {
         ));
 
         emf = Persistence.createEntityManagerFactory("test_objects_pu", jpaProps);
-        myObjectDao = new MyObjectJpaDaoImpl(emf);
+        myObjectDao = new MyObjectJpaDaoImpl(emf, "org.postgresql.Driver", "jdbc:postgresql://localhost:" + port + "/postgres", "postgres");
     }
 
     @BeforeEach
@@ -95,16 +111,7 @@ public class TestMyObjectDaoITest {
     @Test
     void testUsingNormalPersist() {
 
-
-        var myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value1)
-                .column2(value2)
-                .created(created1)
-                .updated(updated1)
-                .build();
-
-        myObjectDao.insertUsingQuery(myObjectPojo);
+        myObjectDao.insertUsingQuery(myObjectPojo1);
 
         var results1 = myObjectDao.getAll();
 
@@ -112,18 +119,9 @@ public class TestMyObjectDaoITest {
         log.info("results1: {}", results1.toString());
         log.info("*****************");
 
-        checkResultsStage1(myObjectPojo, results1);
+        checkResultsStage(results1, myObjectPojo1);
 
-        // create a new slightly different version with same hash
-        myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value3)
-                .column2(value4)
-                .created(created2)
-                .updated(updated2)
-                .build();
-
-        myObjectDao.insertUsingQuery(myObjectPojo);
+        myObjectDao.insertUsingQuery(myObjectPojo2);
 
         var results2 = myObjectDao.getAll();
 
@@ -131,7 +129,7 @@ public class TestMyObjectDaoITest {
         log.info("results2: {}", results2.toString());
         log.info("*****************");
 
-        checkResultsStage2(myObjectPojo, results2);
+        checkResultsStage(results2, myObjectPojo2);
 
     }
 
@@ -143,16 +141,7 @@ public class TestMyObjectDaoITest {
     @Test
     void testInsertUsingNativeQueryWithDoNothing() {
 
-
-        var myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value1)
-                .column2(value2)
-                .created(created1)
-                .updated(updated1)
-                .build();
-
-        myObjectDao.insertUsingNativeQueryWithDoNothing(myObjectPojo);
+        myObjectDao.insertUsingNativeQueryWithDoNothing(myObjectPojo1);
 
         var results1 = myObjectDao.getAll();
 
@@ -160,18 +149,9 @@ public class TestMyObjectDaoITest {
         log.info("results1: {}", results1.toString());
         log.info("*****************");
 
-        checkResultsStage1(myObjectPojo, results1);
+        checkResultsStage(results1, myObjectPojo1);
 
-        // create a new slightly different version with same hash
-        myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value3)
-                .column2(value4)
-                .created(created2)
-                .updated(updated2)
-                .build();
-
-        myObjectDao.insertUsingNativeQueryWithDoNothing(myObjectPojo);
+        myObjectDao.insertUsingNativeQueryWithDoNothing(myObjectPojo2);
 
         var results2 = myObjectDao.getAll();
 
@@ -179,7 +159,7 @@ public class TestMyObjectDaoITest {
         log.info("results2: {}", results2.toString());
         log.info("*****************");
 
-        checkResultsStage2(myObjectPojo, results2);
+        checkResultsStage(results2, myObjectPojo2);
 
     }
 
@@ -192,15 +172,7 @@ public class TestMyObjectDaoITest {
     void testInsertUsingNativeQueryWithDoUpdate() {
 
 
-        var myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value1)
-                .column2(value2)
-                .created(created1)
-                .updated(updated1)
-                .build();
-
-        myObjectDao.insertUsingNativeQueryWithDoUpdate(myObjectPojo);
+        myObjectDao.insertUsingNativeQueryWithDoUpdate(myObjectPojo1);
 
         var results1 = myObjectDao.getAll();
 
@@ -208,21 +180,11 @@ public class TestMyObjectDaoITest {
         log.info("results1: {}", results1.toString());
         log.info("*****************");
 
-        checkResultsStage1(myObjectPojo, results1);
+        checkResultsStage(results1, myObjectPojo1);
 
         var updated2 = LocalDateTime.now();
-        ;
 
-        // create a new slightly different version with same hash
-        myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value3)
-                .column2(value4)
-                .created(created2)
-                .updated(updated2)
-                .build();
-
-        myObjectDao.insertUsingNativeQueryWithDoUpdate(myObjectPojo);
+        myObjectDao.insertUsingNativeQueryWithDoUpdate(myObjectPojo2);
 
         var results2 = myObjectDao.getAll();
 
@@ -230,7 +192,7 @@ public class TestMyObjectDaoITest {
         log.info("results2: {}", results2.toString());
         log.info("*****************");
 
-        checkResultsStage2(myObjectPojo, results2);
+        checkResultsStage(results2, myObjectPojo2);
 
     }
 
@@ -243,15 +205,8 @@ public class TestMyObjectDaoITest {
     @Test
     void testUsingNormalMerge() {
 
-        var myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value1)
-                .column2(value2)
-                .created(created1)
-                .updated(updated1)
-                .build();
 
-        myObjectDao.insertUsingMerge(myObjectPojo);
+        myObjectDao.insertUsingMerge(myObjectPojo1);
 
         var results1 = myObjectDao.getAll();
 
@@ -259,18 +214,10 @@ public class TestMyObjectDaoITest {
         log.info("results1: {}", results1.toString());
         log.info("*****************");
 
-        checkResultsStage1(myObjectPojo, results1);
+        checkResultsStage(results1, myObjectPojo1);
 
-        // create a new slightly different version with same hash
-        myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value3)
-                .column2(value4)
-                .created(created2)
-                .updated(updated2)
-                .build();
 
-        myObjectDao.insertUsingMerge(myObjectPojo);
+        myObjectDao.insertUsingMerge(myObjectPojo2);
 
         var results2 = myObjectDao.getAll();
 
@@ -278,7 +225,7 @@ public class TestMyObjectDaoITest {
         log.info("results2: {}", results2.toString());
         log.info("*****************");
 
-        checkResultsStage2(myObjectPojo, results2);
+        checkResultsStage(results2, myObjectPojo2);
 
     }
 
@@ -291,15 +238,8 @@ public class TestMyObjectDaoITest {
     @Test
     void testUsingNormalFindAndMerge() {
 
-        var myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value1)
-                .column2(value2)
-                .created(created1)
-                .updated(updated1)
-                .build();
 
-        myObjectDao.insertUsingFindAndMerge(myObjectPojo);
+        myObjectDao.insertUsingFindAndMerge(myObjectPojo1);
 
         var results1 = myObjectDao.getAll();
 
@@ -307,18 +247,10 @@ public class TestMyObjectDaoITest {
         log.info("results1: {}", results1.toString());
         log.info("*****************");
 
-        checkResultsStage1(myObjectPojo, results1);
+        checkResultsStage(results1, myObjectPojo1);
 
-        // create a new slightly different version with same hash
-        myObjectPojo = MyObjectPojo.builder()
-                .hash(hash)
-                .column1(value3)
-                .column2(value4)
-                .created(created2)
-                .updated(updated2)
-                .build();
 
-        myObjectDao.insertUsingFindAndMerge(myObjectPojo);
+        myObjectDao.insertUsingFindAndMerge(myObjectPojo1);
 
         var results2 = myObjectDao.getAll();
 
@@ -326,28 +258,48 @@ public class TestMyObjectDaoITest {
         log.info("results2: {}", results2.toString());
         log.info("*****************");
 
-        checkResultsStage2(myObjectPojo, results2);
+        checkResultsStage(results2, myObjectPojo2);
 
     }
 
-    private void checkResultsStage1(MyObjectPojo myObjectPojo, List<MyObjectJpa> results1) {
-        assertThat(results1).hasSize(1)
-                .allMatch(myObjectJpa -> hash.equals(myObjectJpa.getHash()),
+    @Test
+    void testUsingNativeJDBC() {
+
+
+        myObjectDao.insertUsingNativeJDBC(myObjectPojo1);
+
+        var results1 = myObjectDao.getAllUsingNativeJDBC();
+
+        log.info("*****************");
+        log.info("results1: {}", results1.toString());
+        log.info("*****************");
+
+        checkResultsStage(results1, myObjectPojo1);
+
+
+        myObjectDao.insertUsingNativeJDBC(myObjectPojo2);
+
+        var results2 = myObjectDao.getAllUsingNativeJDBC();
+
+        log.info("*****************");
+        log.info("results2: {}", results2.toString());
+        log.info("*****************");
+
+        checkResultsStage(results2, myObjectPojo2);
+
+    }
+
+    private void checkResultsStage(List<MyObjectJpa> results, MyObjectPojo myObjectPojo) {
+        assertThat(results).hasSize(1)
+                .allMatch(myObjectJpa -> myObjectJpa.getHash().equals(myObjectPojo.getHash()),
                         "hash SHOULD BE: " + myObjectPojo.getHash())
-                .allMatch(myObjectJpa -> value1.equals(myObjectJpa.getColumn1()),
+                .allMatch(myObjectJpa -> myObjectJpa.getColumn1().equals(myObjectPojo.getColumn1()),
                         "column1 should be: " + myObjectPojo.getColumn1())
-                .allMatch(myObjectJpa -> value2.equals(myObjectJpa.getColumn2()),
-                        "column2 SHOULD BE: " + myObjectPojo.getHash());
+                .allMatch(myObjectJpa -> myObjectJpa.getColumn2().equals(myObjectPojo.getColumn2()),
+                        "column2 SHOULD BE: " + myObjectPojo.getColumn2());
+//                .allMatch(myObjectJpa -> myObjectJpa.getCreated().compareTo(myObjectPojo.getCreated()) == 0,
+//                        "created SHOULD BE: " + myObjectPojo.getCreated());
     }
 
-    private void checkResultsStage2(MyObjectPojo myObjectPojo, List<MyObjectJpa> results1) {
-        assertThat(results1).hasSize(1)
-                .allMatch(myObjectJpa -> hash.equals(myObjectJpa.getHash()),
-                        "hash SHOULD BE: " + myObjectPojo.getHash())
-                .allMatch(myObjectJpa -> value3.equals(myObjectJpa.getColumn1()),
-                        "column1 should be: " + myObjectPojo.getColumn1())
-                .allMatch(myObjectJpa -> value4.equals(myObjectJpa.getColumn2()),
-                        "column2 SHOULD BE: " + myObjectPojo.getHash());
-    }
 
 }

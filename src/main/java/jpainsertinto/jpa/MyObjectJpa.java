@@ -17,6 +17,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 import java.math.BigInteger;
+import java.time.LocalDate;
 import java.util.Date;
 
 @Entity(name = "TEST_OBJECTS")
